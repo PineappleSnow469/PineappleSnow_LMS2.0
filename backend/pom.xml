@@ -37,8 +37,9 @@
         </dependency>
         <!--MySQL的驱动依赖-->
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <version>11.2.0.jre17</version> <!-- 根据Java版本选择 -->
         </dependency>
     </dependencies>
 

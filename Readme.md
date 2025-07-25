@@ -36,15 +36,20 @@ markdown
 ### インストール手順
 1. **リポジトリのクローン**：リポジトリからプロジェクトをローカルにクローン
 2. **依存関係のインストール**：プロジェクトに必要なすべての依存関係をインストール
-3. **データベースの初期化**：
-   - 手順1：Docker上でMySQLコンテナを設定
-   - 手順2：MySQLコンテナ内に`book_manager`という名前のデータベースを作成
-   - 手順3：`book_manager.sql`ファイルを使用してデータベース構造を初期化
 
 ### プロジェクトの実行
 以下のコマンドでコンテナをビルドし、バックグラウンドで実行します：
 ```bash
+cd backend
+
+mvn clean package
+
+cd ..
+
+docker-compose build
+
 docker-compose up -d
+```
 注意：対象ポートが使用中の場合は、まず該当ポートで動作しているサービスを停止してください。
 
 使用方法
@@ -52,39 +57,57 @@ docker-compose up -d
 
 http://localhost:9528/BookManager/#/
 
-設定オプション
+### 設定オプション
+
 docker-compose.ymlファイルの主な設定内容は以下の通りです：
 
-yaml
-mysql:
-  image: mysql:8.0
-  container_name: mysql
-  restart: always
-  environment:
-    MYSQL_ROOT_PASSWORD: yourpassword
-    MYSQL_DATABASE: book_manager
-  ports:
-    - "3306:3306"
-  volumes:
-    - mysql-data:/var/lib/mysql
-  networks:
-    - app-network
-
-backend:
-  build: ./backend
-  container_name: backend
-  depends_on:
-    - mysql
-    - redis
-  ports:
-    - "8092:8092"
-  environment:
-    SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/book_manager?useAffectedRows=true&serverTimezone=Asia/Shanghai
-    SPRING_DATASOURCE_USERNAME: root
-    SPRING_DATASOURCE_PASSWORD: yourpassword
+```yaml
+sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest  # 明确使用2022版本
+    container_name: sqlserver
+    restart: always
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: "YourStrongPassw0rd"
+      MSSQL_PID: Express  # 也可以改为 Developer (功能更全)
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./init-sql:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    healthcheck:  # 添加健康检查
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -U sa -P $$SA_PASSWORD -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  ...
+ backend:
+    build: ./backend
+    container_name: backend
+    depends_on:
+      - sqlserver
+      - redis # 添加依赖
+    ports:
+      - "8092:8092"
+    environment:
+      # 使用您原始的数据库配置
+      SPRING_DATASOURCE_URL: jdbc:sqlserver://sqlserver:1433;databaseName=book_manager;encrypt=true;trustServerCertificate=true
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD: YourStrongPassw0rd
+```
 注意事項
 すべての環境依存関係が正しくインストールされていることを確認してください
 
-データベースパスワードなどの機密情報には、サンプルの"yourpassword"を直接使用しないでください
+データベースパスワードなどの機密情報には、サンプルの"YourStrongPassw0rd"を直接使用しないでください
 
-初回実行時は、イメージのビルドとデータベースの初期化に時間がかかる場合があります
+データベースの自動初期化に失敗する場合、手動で初期化してください：
+```powershell
+docker cp init.sqlの絶対パス sqlserver:/tmp/init.sql
+
+#/opt/mssql-tools18/bin/sqlcmdは自分のsqlcmdのパス
+docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd ` -S localhost -U SA -P "YourStrongPassw0rd" -C -i /tmp/init.sql -o /tmp/output.txt -r
+
+docker exec -it sqlserver cat /tmp/output.txt
+```

@@ -1,18 +1,24 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest  # 明确使用2022版本
+    container_name: sqlserver
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: 1235789zZ@
-      MYSQL_DATABASE: book_manager
+      ACCEPT_EULA: Y
+      SA_PASSWORD: "1235789zZ@"
+      MSSQL_PID: Express  # 也可以改为 Developer (功能更全)
     ports:
-      - "3306:3306"
+      - "1433:1433"
     volumes:
-      - mysql-data:/var/lib/mysql
+      - sqlserver-data:/var/opt/mssql
       - ./init-sql:/docker-entrypoint-initdb.d
     networks:
       - app-network
+    healthcheck:  # 添加健康检查
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -U sa -P $$SA_PASSWORD -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # 添加 Redis 服务（必须项）
   redis:
@@ -28,14 +34,14 @@ services:
     build: ./backend
     container_name: backend
     depends_on:
-      - mysql
+      - sqlserver
       - redis # 添加依赖
     ports:
       - "8092:8092"
     environment:
       # 使用您原始的数据库配置
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/book_manager?useAffectedRows=true&serverTimezone=Asia/Shanghai
-      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_URL: jdbc:sqlserver://sqlserver:1433;databaseName=book_manager;encrypt=true;trustServerCertificate=true
+      SPRING_DATASOURCE_USERNAME: sa
       SPRING_DATASOURCE_PASSWORD: 1235789zZ@
       
       # 添加 Redis 配置
@@ -63,7 +69,7 @@ services:
       - app-network
 
 volumes:
-  mysql-data:
+  sqlserver-data:  # 这里明确定义了sqlserver-data卷
 
 networks:
   app-network:

@@ -1,33 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.wangpeng.bms.mapper.UserMapper">
+
   <resultMap id="BaseResultMap" type="com.wangpeng.bms.model.User">
     <id column="userId" jdbcType="INTEGER" property="userid" />
     <result column="userName" jdbcType="VARCHAR" property="username" />
     <result column="userPassword" jdbcType="VARCHAR" property="userpassword" />
     <result column="isAdmin" jdbcType="TINYINT" property="isadmin" />
   </resultMap>
+
   <sql id="Base_Column_List">
     userId, userName, userPassword, isAdmin
   </sql>
+
+  <!-- 根据主键查询 -->
   <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
-    select 
+    SELECT TOP 1 
     <include refid="Base_Column_List" />
-    from user
-    where userId = #{userid,jdbcType=INTEGER}
+    FROM [user]
+    WHERE userId = #{userid,jdbcType=INTEGER}
   </select>
+
+  <!-- 根据主键删除 -->
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
-    delete from user
-    where userId = #{userid,jdbcType=INTEGER}
+    DELETE FROM [user]
+    WHERE userId = #{userid,jdbcType=INTEGER}
   </delete>
+
+  <!-- 插入完整记录 -->
   <insert id="insert" parameterType="com.wangpeng.bms.model.User">
-    insert into user (userId, userName, userPassword, 
-      isAdmin)
-    values (#{userid,jdbcType=INTEGER}, #{username,jdbcType=VARCHAR}, #{userpassword,jdbcType=VARCHAR}, 
-      #{isadmin,jdbcType=TINYINT})
+    INSERT INTO [user] (userId, userName, userPassword, isAdmin)
+    VALUES (#{userid,jdbcType=INTEGER}, #{username,jdbcType=VARCHAR}, 
+            #{userpassword,jdbcType=VARCHAR}, #{isadmin,jdbcType=TINYINT})
   </insert>
+
+  <!-- 选择性插入 -->
   <insert id="insertSelective" parameterType="com.wangpeng.bms.model.User">
-    insert into user
+    INSERT INTO [user]
     <trim prefix="(" suffix=")" suffixOverrides=",">
       <if test="userid != null">
         userId,
@@ -57,8 +66,10 @@
       </if>
     </trim>
   </insert>
+
+  <!-- 选择性更新 -->
   <update id="updateByPrimaryKeySelective" parameterType="com.wangpeng.bms.model.User">
-    update user
+    UPDATE [user]
     <set>
       <if test="username != null">
         userName = #{username,jdbcType=VARCHAR},
@@ -70,59 +81,80 @@
         isAdmin = #{isadmin,jdbcType=TINYINT},
       </if>
     </set>
-    where userId = #{userid,jdbcType=INTEGER}
+    WHERE userId = #{userid,jdbcType=INTEGER}
   </update>
+
+  <!-- 完整更新 -->
   <update id="updateByPrimaryKey" parameterType="com.wangpeng.bms.model.User">
-    update user
-    set userName = #{username,jdbcType=VARCHAR},
-      userPassword = #{userpassword,jdbcType=VARCHAR},
-      isAdmin = #{isadmin,jdbcType=TINYINT}
-    where userId = #{userid,jdbcType=INTEGER}
+    UPDATE [user]
+    SET userName = #{username,jdbcType=VARCHAR},
+        userPassword = #{userpassword,jdbcType=VARCHAR},
+        isAdmin = #{isadmin,jdbcType=TINYINT}
+    WHERE userId = #{userid,jdbcType=INTEGER}
   </update>
+
+  <!-- 根据用户名、密码和管理员状态查询 -->
   <select id="selectByUsernameAndPasswordAndIsAdmin" resultMap="BaseResultMap">
-    select
+    SELECT TOP 1
     <include refid="Base_Column_List" />
-    from user
-    where userName = #{username}
-      and userPassword = #{password}
-      and isAdmin = #{isAdmin}
-    limit 1
+    FROM [user]
+    WHERE userName = #{username}
+      AND userPassword = #{password}
+      AND isAdmin = #{isAdmin}
   </select>
+
+  <!-- 根据用户名查询 -->
   <select id="selectByUsername" resultMap="BaseResultMap">
-    select
+    SELECT TOP 1
     <include refid="Base_Column_List" />
-    from user
-    where userName = #{username}
-    limit 1
+    FROM [user]
+    WHERE userName = #{username}
   </select>
+
+  <!-- 分页查询 -->
   <select id="selectAllByLimit" resultMap="BaseResultMap">
-    select <include refid="Base_Column_List" />
-    from user
-    limit #{begin}, #{size}
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM [user]
+    ORDER BY userId
+    OFFSET #{begin} ROWS FETCH NEXT #{size} ROWS ONLY
   </select>
+
+  <!-- 查询总数 -->
   <select id="selectCount" resultType="int">
-    select count(*) from user
+    SELECT COUNT(*) FROM [user]
   </select>
+
+  <!-- 查询所有用户 -->
   <select id="selectAll" resultMap="BaseResultMap">
-    select <include refid="Base_Column_List" />
-    from user
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM [user]
+    ORDER BY userId
   </select>
+
+  <!-- 根据条件查询总数 -->
   <select id="selectCountBySearch" resultType="int">
-    select count(*) from user
+    SELECT COUNT(*) FROM [user]
     <where>
-      <if test="username != null and username != '' ">
-        and userName like concat('%',#{username},'%')
+      <if test="username != null and username != ''">
+        AND userName LIKE '%' + #{username} + '%'
       </if>
     </where>
   </select>
+
+  <!-- 根据条件分页查询 -->
   <select id="selectBySearch" resultMap="BaseResultMap">
-    select userId, userName, userPassword, isAdmin
-    from user
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM [user]
     <where>
-      <if test="username != null and username != '' ">
-        and userName like concat('%',#{username},'%')
+      <if test="username != null and username != ''">
+        AND userName LIKE '%' + #{username} + '%'
       </if>
     </where>
-    limit #{begin}, #{size}
+    ORDER BY userId
+    OFFSET #{begin} ROWS FETCH NEXT #{size} ROWS ONLY
   </select>
+
 </mapper>
