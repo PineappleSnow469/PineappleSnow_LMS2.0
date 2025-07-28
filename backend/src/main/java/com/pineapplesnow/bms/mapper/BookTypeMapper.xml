@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pineapplesnow.bms.mapper.BookTypeMapper">
+
+  <resultMap id="BaseResultMap" type="com.pineapplesnow.bms.model.BookType">
+    <id column="bookTypeId" jdbcType="INTEGER" property="booktypeid" />
+    <result column="bookTypeName" jdbcType="VARCHAR" property="booktypename" />
+    <result column="bookTypeDesc" jdbcType="VARCHAR" property="booktypedesc" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    bookTypeId, bookTypeName, bookTypeDesc
+  </sql>
+
+  <!-- 基本CRUD操作 -->
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    SELECT 
+    <include refid="Base_Column_List" />
+    FROM book_type WITH(NOLOCK)
+    WHERE bookTypeId = #{booktypeid,jdbcType=INTEGER}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    DELETE FROM book_type
+    WHERE bookTypeId = #{booktypeid,jdbcType=INTEGER}
+  </delete>
+
+  <insert id="insert" parameterType="com.pineapplesnow.bms.model.BookType" useGeneratedKeys="true" keyProperty="booktypeid">
+    INSERT INTO book_type (
+      bookTypeName, bookTypeDesc
+    ) VALUES (
+      #{booktypename,jdbcType=VARCHAR}, 
+      #{booktypedesc,jdbcType=VARCHAR}
+    )
+  </insert>
+
+  <!-- 动态插入 -->
+  <insert id="insertSelective" parameterType="com.pineapplesnow.bms.model.BookType" useGeneratedKeys="true" keyProperty="booktypeid">
+    INSERT INTO book_type
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="booktypename != null">bookTypeName,</if>
+      <if test="booktypedesc != null">bookTypeDesc,</if>
+    </trim>
+    <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+      <if test="booktypename != null">#{booktypename,jdbcType=VARCHAR},</if>
+      <if test="booktypedesc != null">#{booktypedesc,jdbcType=VARCHAR},</if>
+    </trim>
+  </insert>
+
+  <!-- 动态更新 -->
+  <update id="updateByPrimaryKeySelective" parameterType="com.pineapplesnow.bms.model.BookType">
+    UPDATE book_type
+    <set>
+      <if test="booktypename != null">bookTypeName = #{booktypename,jdbcType=VARCHAR},</if>
+      <if test="booktypedesc != null">bookTypeDesc = #{booktypedesc,jdbcType=VARCHAR},</if>
+    </set>
+    WHERE bookTypeId = #{booktypeid,jdbcType=INTEGER}
+  </update>
+
+  <!-- 全字段更新 -->
+  <update id="updateByPrimaryKey" parameterType="com.pineapplesnow.bms.model.BookType">
+    UPDATE book_type
+    SET bookTypeName = #{booktypename,jdbcType=VARCHAR},
+      bookTypeDesc = #{booktypedesc,jdbcType=VARCHAR}
+    WHERE bookTypeId = #{booktypeid,jdbcType=INTEGER}
+  </update>
+
+  <!-- SQL Server专用分页查询 -->
+  <select id="selectAllByLimit" resultMap="BaseResultMap">
+    SELECT * FROM (
+      SELECT 
+        ROW_NUMBER() OVER (
+          <choose>
+            <when test="sortField != null and sortField != ''">
+              ORDER BY ${sortField} ${sortOrder}
+            </when>
+            <otherwise>
+              ORDER BY bookTypeId
+            </otherwise>
+          </choose>
+        ) AS row_num,
+        <include refid="Base_Column_List" />
+      FROM book_type WITH(NOLOCK)
+    ) AS temp
+    WHERE row_num BETWEEN #{begin} + 1 AND #{begin} + #{size}
+  </select>
+
+  <!-- 总数统计 -->
+  <select id="selectCount" resultType="int">
+    SELECT COUNT(*) FROM book_type WITH(NOLOCK)
+  </select>
+
+  <!-- 获取所有数据 -->
+  <select id="selectAll" resultMap="BaseResultMap">
+    SELECT <include refid="Base_Column_List" />
+    FROM book_type WITH(NOLOCK)
+  </select>
+
+  <!-- 条件统计 -->
+  <select id="selectCountBySearch" resultType="int">
+    SELECT COUNT(*) FROM book_type WITH(NOLOCK)
+    <where>
+      <if test="booktypename != null and booktypename != ''">
+        AND bookTypeName LIKE '%' + #{booktypename} + '%'
+      </if>
+    </where>
+  </select>
+
+  <!-- 条件分页查询 -->
+  <select id="selectBySearch" resultMap="BaseResultMap">
+    SELECT * FROM (
+      SELECT 
+        ROW_NUMBER() OVER (
+          <choose>
+            <when test="sortField != null and sortField != ''">
+              ORDER BY ${sortField} ${sortOrder}
+            </when>
+            <otherwise>
+              ORDER BY bookTypeId
+            </otherwise>
+          </choose>
+        ) AS row_num,
+        <include refid="Base_Column_List" />
+      FROM book_type WITH(NOLOCK)
+      <where>
+        <if test="booktypename != null and booktypename != ''">
+          AND bookTypeName LIKE '%' + #{booktypename} + '%'
+        </if>
+      </where>
+    ) AS temp
+    WHERE row_num BETWEEN #{begin} + 1 AND #{begin} + #{size}
+  </select>
+
+</mapper>

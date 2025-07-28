@@ -59,17 +59,27 @@ http://localhost:9528/BookManager/#/
 
 ### 設定オプション
 
+backend\src\main\resources\application.propertiesファイルの主な設定内容は以下の通りです：
+
+```application.properties
+# =============== SQL Server データベースの配置 ===============
+spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=book_manager;encrypt=true;trustServerCertificate=true}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:sa}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:YourStrongPassw0rd@}
+```
+
 docker-compose.ymlファイルの主な設定内容は以下の通りです：
 
 ```yaml
 sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest  # 明确使用2022版本
+    image: mcr.microsoft.com/mssql/server:2022-latest  
     container_name: sqlserver
     restart: always
     environment:
       ACCEPT_EULA: Y
-      SA_PASSWORD: "YourStrongPassw0rd"
-      MSSQL_PID: Express  # 也可以改为 Developer (功能更全)
+      SA_PASSWORD: "YourStrongPassw0rd@"
+      MSSQL_PID: Express  
     ports:
       - "1433:1433"
     volumes:
@@ -77,7 +87,7 @@ sqlserver:
       - ./init-sql:/docker-entrypoint-initdb.d
     networks:
       - app-network
-    healthcheck:  # 添加健康检查
+    healthcheck:  
       test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -U sa -P $$SA_PASSWORD -Q 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
@@ -88,26 +98,25 @@ sqlserver:
     container_name: backend
     depends_on:
       - sqlserver
-      - redis # 添加依赖
+      - redis 
     ports:
       - "8092:8092"
     environment:
-      # 使用您原始的数据库配置
       SPRING_DATASOURCE_URL: jdbc:sqlserver://sqlserver:1433;databaseName=book_manager;encrypt=true;trustServerCertificate=true
       SPRING_DATASOURCE_USERNAME: sa
-      SPRING_DATASOURCE_PASSWORD: YourStrongPassw0rd
+      SPRING_DATASOURCE_PASSWORD: YourStrongPassw0rd@
 ```
 注意事項
 すべての環境依存関係が正しくインストールされていることを確認してください
 
-データベースパスワードなどの機密情報には、サンプルの"YourStrongPassw0rd"を直接使用しないでください
+データベースパスワードなどの機密情報には、サンプルの"YourStrongPassw0rd@"を直接使用しないでください
 
-データベースの自動初期化に失敗する場合、手動で初期化してください：
+データベースの自動初期化に失敗する場合、powershellで手動で初期化してください：
 ```powershell
 docker cp init.sqlの絶対パス sqlserver:/tmp/init.sql
 
 #/opt/mssql-tools18/bin/sqlcmdは自分のsqlcmdのパス
-docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd ` -S localhost -U SA -P "YourStrongPassw0rd" -C -i /tmp/init.sql -o /tmp/output.txt -r
+docker exec -it sqlserver /opt/mssql-tools18/bin/sqlcmd ` -S localhost -U SA -P "YourStrongPassw0rd@" -C -i /tmp/init.sql -o /tmp/output.txt -r
 
 docker exec -it sqlserver cat /tmp/output.txt
 ```

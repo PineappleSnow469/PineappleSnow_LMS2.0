@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pineapplesnow.bms.mapper.BookInfoMapper">
+  
+  <!-- 修正resultMap中的类型错误 -->
+  <resultMap id="BaseResultMap" type="com.pineapplesnow.bms.model.BookInfo">
+    <id column="bookId" jdbcType="INTEGER" property="bookid" />
+    <result column="bookName" jdbcType="VARCHAR" property="bookname" />
+    <result column="bookAuthor" jdbcType="VARCHAR" property="bookauthor" />
+    <result column="bookPrice" jdbcType="DECIMAL" property="bookprice" />
+    <result column="bookTypeId" jdbcType="INTEGER" property="booktypeid" />
+    <result column="bookTypeName" jdbcType="VARCHAR" property="booktypename" />
+    <result column="bookDesc" jdbcType="VARCHAR" property="bookdesc" />
+    <result column="isBorrowed" jdbcType="TINYINT" property="isborrowed" />
+    <result column="bookImg" jdbcType="VARCHAR" property="bookimg" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    bookId, bookName, bookAuthor, bookPrice, bookTypeId, bookDesc, isBorrowed, bookImg
+  </sql>
+
+  <!-- 基本CRUD操作 -->
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    SELECT 
+    <include refid="Base_Column_List" />,
+    (SELECT bookTypeName FROM book_type WHERE bookTypeId = book_info.bookTypeId) AS bookTypeName
+    FROM book_info
+    WHERE bookId = #{bookid,jdbcType=INTEGER}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    DELETE FROM book_info
+    WHERE bookId = #{bookid,jdbcType=INTEGER}
+  </delete>
+
+  <insert id="insert" parameterType="com.pineapplesnow.bms.model.BookInfo">
+    INSERT INTO book_info (
+      bookName, bookAuthor, bookPrice, 
+      bookTypeId, bookDesc, isBorrowed, bookImg
+    ) VALUES (
+      #{bookname,jdbcType=VARCHAR}, #{bookauthor,jdbcType=VARCHAR},
+      #{bookprice,jdbcType=DECIMAL}, #{booktypeid,jdbcType=INTEGER},
+      #{bookdesc,jdbcType=VARCHAR}, #{isborrowed,jdbcType=TINYINT},
+      #{bookimg,jdbcType=VARCHAR}
+    )
+  </insert>
+
+  <!-- 动态插入 -->
+  <insert id="insertSelective" parameterType="com.pineapplesnow.bms.model.BookInfo">
+    INSERT INTO book_info
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="bookname != null">bookName,</if>
+      <if test="bookauthor != null">bookAuthor,</if>
+      <if test="bookprice != null">bookPrice,</if>
+      <if test="booktypeid != null">bookTypeId,</if>
+      <if test="bookdesc != null">bookDesc,</if>
+      <if test="isborrowed != null">isBorrowed,</if>
+      <if test="bookimg != null">bookImg,</if>
+    </trim>
+    <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+      <if test="bookname != null">#{bookname,jdbcType=VARCHAR},</if>
+      <if test="bookauthor != null">#{bookauthor,jdbcType=VARCHAR},</if>
+      <if test="bookprice != null">#{bookprice,jdbcType=DECIMAL},</if>
+      <if test="booktypeid != null">#{booktypeid,jdbcType=INTEGER},</if>
+      <if test="bookdesc != null">#{bookdesc,jdbcType=VARCHAR},</if>
+      <if test="isborrowed != null">#{isborrowed,jdbcType=TINYINT},</if>
+      <if test="bookimg != null">#{bookimg,jdbcType=VARCHAR},</if>
+    </trim>
+  </insert>
+
+  <!-- 动态更新 -->
+  <update id="updateByPrimaryKeySelective" parameterType="com.pineapplesnow.bms.model.BookInfo">
+    UPDATE book_info
+    <set>
+      <if test="bookname != null">bookName = #{bookname,jdbcType=VARCHAR},</if>
+      <if test="bookauthor != null">bookAuthor = #{bookauthor,jdbcType=VARCHAR},</if>
+      <if test="bookprice != null">bookPrice = #{bookprice,jdbcType=DECIMAL},</if>
+      <if test="booktypeid != null">bookTypeId = #{booktypeid,jdbcType=INTEGER},</if>
+      <if test="bookdesc != null">bookDesc = #{bookdesc,jdbcType=VARCHAR},</if>
+      <if test="isborrowed != null">isBorrowed = #{isborrowed,jdbcType=TINYINT},</if>
+      <if test="bookimg != null">bookImg = #{bookimg,jdbcType=VARCHAR},</if>
+    </set>
+    WHERE bookId = #{bookid,jdbcType=INTEGER}
+  </update>
+
+  <!-- 全字段更新 -->
+  <update id="updateByPrimaryKey" parameterType="com.pineapplesnow.bms.model.BookInfo">
+    UPDATE book_info
+    SET bookName = #{bookname,jdbcType=VARCHAR},
+      bookAuthor = #{bookauthor,jdbcType=VARCHAR},
+      bookPrice = #{bookprice,jdbcType=DECIMAL},
+      bookTypeId = #{booktypeid,jdbcType=INTEGER},
+      bookDesc = #{bookdesc,jdbcType=VARCHAR},
+      isBorrowed = #{isborrowed,jdbcType=TINYINT},
+      bookImg = #{bookimg,jdbcType=VARCHAR}
+    WHERE bookId = #{bookid,jdbcType=INTEGER}
+  </update>
+
+  <!-- 分页查询（SQL Server专用语法） -->
+  <select id="selectAllByLimit" resultMap="BaseResultMap">
+    SELECT * FROM (
+      SELECT 
+        ROW_NUMBER() OVER (ORDER BY bookId) AS row_num,
+        <include refid="Base_Column_List" />,
+        (SELECT bookTypeName FROM book_type WHERE bookTypeId = book_info.bookTypeId) AS bookTypeName
+      FROM book_info
+    ) AS temp
+    WHERE row_num BETWEEN #{begin} + 1 AND #{begin} + #{size}
+  </select>
+
+  <!-- 总数统计 -->
+  <select id="selectCount" resultType="int">
+    SELECT COUNT(*) FROM book_info
+  </select>
+
+  <!-- 条件统计 -->
+  <select id="selectCountBySearch" resultType="int">
+    SELECT COUNT(*) FROM book_info
+    <where>
+      <if test="bookname != null and bookname != ''">
+        AND bookName LIKE '%' + #{bookname} + '%'
+      </if>
+      <if test="bookauthor != null and bookauthor != ''">
+        AND bookAuthor LIKE '%' + #{bookauthor} + '%'
+      </if>
+      <if test="booktypeid != null">
+        AND bookTypeId = #{booktypeid}
+      </if>
+    </where>
+  </select>
+
+  <!-- 条件分页查询 -->
+  <select id="selectBySearch" resultMap="BaseResultMap">
+    SELECT * FROM (
+      SELECT 
+        ROW_NUMBER() OVER (ORDER BY bookId) AS row_num,
+        <include refid="Base_Column_List" />,
+        (SELECT bookTypeName FROM book_type WHERE bookTypeId = book_info.bookTypeId) AS bookTypeName
+      FROM book_info
+      <where>
+        <if test="bookname != null and bookname != ''">
+          AND bookName LIKE '%' + #{bookname} + '%'
+        </if>
+        <if test="bookauthor != null and bookauthor != ''">
+          AND bookAuthor LIKE '%' + #{bookauthor} + '%'
+        </if>
+        <if test="booktypeid != null">
+          AND bookTypeId = #{booktypeid}
+        </if>
+      </where>
+    ) AS temp
+    WHERE row_num BETWEEN #{begin} + 1 AND #{begin} + #{size}
+  </select>
+
+  <!-- 获取所有数据（谨慎使用） -->
+  <select id="selectAll" resultMap="BaseResultMap">
+    SELECT 
+      <include refid="Base_Column_List" />,
+      (SELECT bookTypeName FROM book_type WHERE bookTypeId = book_info.bookTypeId) AS bookTypeName
+    FROM book_info
+  </select>
+
+  <!-- 按分类统计 -->
+  <select id="selectCountByType" resultType="int">
+    SELECT COUNT(*) FROM book_info
+    <where>
+      <if test="booktypeid != null">
+        AND bookTypeId = #{booktypeid}
+      </if>
+    </where>
+  </select>
+
+  <!-- 按分类分页查询 -->
+  <select id="selectByType" resultMap="BaseResultMap">
+    SELECT * FROM (
+      SELECT 
+        ROW_NUMBER() OVER (ORDER BY bookId) AS row_num,
+        <include refid="Base_Column_List" />,
+        (SELECT bookTypeName FROM book_type WHERE bookTypeId = book_info.bookTypeId) AS bookTypeName
+      FROM book_info
+      <where>
+        <if test="booktypeid != null">
+          AND bookTypeId = #{booktypeid}
+        </if>
+      </where>
+    ) AS temp
+    WHERE row_num BETWEEN #{begin} + 1 AND #{begin} + #{size}
+  </select>
+
+</mapper>

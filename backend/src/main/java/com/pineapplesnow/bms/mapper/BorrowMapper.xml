@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pineapplesnow.bms.mapper.BorrowMapper">
+
+  <!-- 修正数据类型（userName和bookName应为VARCHAR） -->
+  <resultMap id="BaseResultMap" type="com.pineapplesnow.bms.model.Borrow">
+    <id column="borrowId" jdbcType="INTEGER" property="borrowid" />
+    <result column="userId" jdbcType="INTEGER" property="userid" />
+    <result column="userName" jdbcType="VARCHAR" property="username" />
+    <result column="bookId" jdbcType="INTEGER" property="bookid" />
+    <result column="bookName" jdbcType="VARCHAR" property="bookname" />
+    <result column="borrowTime" jdbcType="TIMESTAMP" property="borrowtime" />
+    <result column="returnTime" jdbcType="TIMESTAMP" property="returntime" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    borrowId, userId, bookId, borrowTime, returnTime
+  </sql>
+
+  <!-- 基本CRUD操作 -->
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    SELECT 
+    <include refid="Base_Column_List" />,
+    (SELECT userName FROM [user] WHERE userId = borrow.userId) AS userName,
+    (SELECT bookName FROM book_info WHERE bookId = borrow.bookId) AS bookName
+    FROM borrow WITH(NOLOCK)
+    WHERE borrowId = #{borrowid,jdbcType=INTEGER}
+  </select>
+
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    DELETE FROM borrow
+    WHERE borrowId = #{borrowid,jdbcType=INTEGER}
+  </delete>
+
+  <insert id="insert" parameterType="com.pineapplesnow.bms.model.Borrow" useGeneratedKeys="true" keyProperty="borrowid">
+    INSERT INTO borrow (
+      userId, bookId, borrowTime, returnTime
+    ) VALUES (
+      #{userid,jdbcType=INTEGER}, #{bookid,jdbcType=INTEGER},
+      #{borrowtime,jdbcType=TIMESTAMP}, #{returntime,jdbcType=TIMESTAMP}
+    )
+  </insert>
+
+  <!-- 动态插入 -->
+  <insert id="insertSelective" parameterType="com.pineapplesnow.bms.model.Borrow" useGeneratedKeys="true" keyProperty="borrowid">
+    INSERT INTO borrow
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="userid != null">userId,</if>
+      <if test="bookid != null">bookId,</if>
+      <if test="borrowtime != null">borrowTime,</if>
+      <if test="returntime != null">returnTime,</if>
+    </trim>
+    <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+      <if test="userid != null">#{userid,jdbcType=INTEGER},</if>
+      <if test="bookid != null">#{bookid,jdbcType=INTEGER},</if>
+      <if test="borrowtime != null">#{borrowtime,jdbcType=TIMESTAMP},</if>
+      <if test="returntime != null">#{returntime,jdbcType=TIMESTAMP},</if>
+    </trim>
+  </insert>
+
+  <!-- 动态更新 -->
+  <update id="updateByPrimaryKeySelective" parameterType="com.pineapplesnow.bms.model.Borrow">
+    UPDATE borrow
+    <set>
+      <if test="userid != null">userId = #{userid,jdbcType=INTEGER},</if>
+      <if test="bookid != null">bookId = #{bookid,jdbcType=INTEGER},</if>
+      <if test="borrowtime != null">borrowTime = #{borrowtime,jdbcType=TIMESTAMP},</if>
+      <if test="returntime != null">returnTime = #{returntime,jdbcType=TIMESTAMP},</if>
+    </set>
+    WHERE borrowId = #{borrowid,jdbcType=INTEGER}
+  </update>
+
+  <!-- 全字段更新 -->
+  <update id="updateByPrimaryKey" parameterType="com.pineapplesnow.bms.model.Borrow">
+    UPDATE borrow
+    SET userId = #{userid,jdbcType=INTEGER},
+      bookId = #{bookid,jdbcType=INTEGER},
+      borrowTime = #{borrowtime,jdbcType=TIMESTAMP},
+      returnTime = #{returntime,jdbcType=TIMESTAMP}
+    WHERE borrowId = #{borrowid,jdbcType=INTEGER}
+  </update>
+
+  <!-- SQL Server专用分页查询 -->
+  <select id="selectAllByLimit" resultMap="BaseResultMap">
+    SELECT * FROM (
+      SELECT 
+        ROW_NUMBER() OVER (ORDER BY borrowId) AS row_num,
+        b.borrowId, b.userId, b.bookId, b.borrowTime, b.returnTime,
+        u.userName, bi.bookName
+      FROM borrow b WITH(NOLOCK)
+      JOIN [user] u WITH(NOLOCK) ON b.userId = u.userId
+      JOIN book_info bi WITH(NOLOCK) ON b.bookId = bi.bookId
+    ) AS temp
+    WHERE row_num BETWEEN #{begin} + 1 AND #{begin} + #{size}
+  </select>
+
+  <!-- 总数统计 -->
+  <select id="selectCount" resultType="int">
+    SELECT COUNT(*) FROM borrow WITH(NOLOCK)
+  </select>
+
+  <!-- 条件统计 -->
+  <select id="selectCountBySearch" resultType="int">
+    SELECT COUNT(*)
+    FROM borrow b WITH(NOLOCK)
+    JOIN [user] u WITH(NOLOCK) ON b.userId = u.userId
+    JOIN book_info bi WITH(NOLOCK) ON b.bookId = bi.bookId
+    <where>
+      <if test="username != null and username != ''">
+        AND u.userName LIKE '%' + #{username} + '%'
+      </if>
+      <if test="bookname != null and bookname != ''">
+        AND bi.bookName LIKE '%' + #{bookname} + '%'
+      </if>
+      <if test="userid != null">
+        AND b.userId = #{userid}
+      </if>
+    </where>
+  </select>
+
+  <!-- 条件分页查询 -->
+  <select id="selectBySearch" resultMap="BaseResultMap">
+    SELECT * FROM (
+      SELECT 
+        ROW_NUMBER() OVER (
+          <choose>
+            <when test="sortField != null and sortField != ''">
+              ORDER BY ${sortField} ${sortOrder}
+            </when>
+            <otherwise>
+              ORDER BY b.borrowId
+            </otherwise>
+          </choose>
+        ) AS row_num,
+        b.borrowId, b.userId, b.bookId, b.borrowTime, b.returnTime,
+        u.userName, bi.bookName
+      FROM borrow b WITH(NOLOCK)
+      JOIN [user] u WITH(NOLOCK) ON b.userId = u.userId
+      JOIN book_info bi WITH(NOLOCK) ON b.bookId = bi.bookId
+      <where>
+        <if test="username != null and username != ''">
+          AND u.userName LIKE '%' + #{username} + '%'
+        </if>
+        <if test="bookname != null and bookname != ''">
+          AND bi.bookName LIKE '%' + #{bookname} + '%'
+        </if>
+        <if test="userid != null">
+          AND b.userId = #{userid}
+        </if>
+      </where>
+    ) AS temp
+    WHERE row_num BETWEEN #{begin} + 1 AND #{begin} + #{size}
+  </select>
+
+  <!-- 读者借阅统计 -->
+  <select id="selectCountByReader" resultType="int">
+    SELECT COUNT(*) FROM borrow WITH(NOLOCK)
+    WHERE userId = #{userid}
+  </select>
+
+  <!-- 读者借阅分页查询 -->
+  <select id="selectAllByLimitByReader" resultMap="BaseResultMap">
+    SELECT * FROM (
+      SELECT 
+        ROW_NUMBER() OVER (ORDER BY borrowId) AS row_num,
+        b.borrowId, b.userId, b.bookId, b.borrowTime, b.returnTime,
+        u.userName, bi.bookName
+      FROM borrow b WITH(NOLOCK)
+      JOIN [user] u WITH(NOLOCK) ON b.userId = u.userId
+      JOIN book_info bi WITH(NOLOCK) ON b.bookId = bi.bookId
+      WHERE b.userId = #{userid}
+    ) AS temp
+    WHERE row_num BETWEEN #{begin} + 1 AND #{begin} + #{size}
+  </select>
+
+</mapper>
